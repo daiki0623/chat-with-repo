@@ -14,7 +14,7 @@ from genai.schema import (
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories.momento import MomentoChatMessageHistory
 from langchain_openai.chat_models import ChatOpenAI
@@ -22,11 +22,11 @@ from langchain_openai.chat_models import ChatOpenAI
 from add_document import initialize_vectorstore
 
 
-logger = my_logger.set_logger(__name__)
-
-# explain this class
-
 class ChatAssistant:
+    def __init__(self) -> None:
+        self._logger = my_logger.set_logger(__name__)
+
+
     def __model_initializer(self, selected_model):
         # 画面で選択されたモデル名からどのモデルを利用するかを判別するフラグを検索
         selected_model_flg = None
@@ -75,6 +75,7 @@ class ChatAssistant:
         1. Retrieverは最新の入力だけでなく、質問履歴全体を入力とする
         2. LLMの生成部分では全履歴を考慮する
         """
+        # チャット履歴
         momento_chat_history = MomentoChatMessageHistory.from_client_params(
             "test", # TODO: 
             os.environ["MOMENTO_CACHE"],
@@ -82,45 +83,47 @@ class ChatAssistant:
         )
         momento_chat_history.add_user_message(message)
 
+        # llmはchain共通
         llm = self.__model_initializer(selected_model)
 
-        # 最新の入力を質問履歴に格納し、クエリを生成する
+        """
+        history_aware_retriever
+        最新の入力をチャット履歴に格納し、クエリを生成する
+        """
         retriever = vectorstore.as_retriever()
-        prompt = ChatPromptTemplate.from_messages([
+        query_messages = [
             MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "{input}"),
-            ("human", "Given the above conversation, generate a search query to look up to get information relevant to the conversation"),
-        ])
-        retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
+            HumanMessagePromptTemplate.from_template(template="{input}"),
+            HumanMessagePromptTemplate.from_template(template="Given the above conversation, generate a search query to look up to get information relevant to the conversation"),
+        ]
+        prompt = ChatPromptTemplate.from_messages(query_messages)
+        retriever_chain = create_history_aware_retriever(llm, retriever, prompt) # LCELのラッパー
 
-        # Prompt
-        retrieval_qa_chat_prompt = ChatPromptTemplate.from_messages([
-            ("system", "Answer the user's questions based on the below context:\n\n{context}"),
+        """
+        documents_chain
+        """
+        retrieval_qa_messages = [
+            SystemMessagePromptTemplate.from_template(template="Answer the user's questions based on the below context:\n\n{context}"),
             MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "{input}"),
-        ])
-        document_chain = create_stuff_documents_chain(llm=llm, prompt=retrieval_qa_chat_prompt)
+            HumanMessagePromptTemplate.from_template(template="{input}")
+        ]
+        retrieval_qa_chat_prompt = ChatPromptTemplate.from_messages(retrieval_qa_messages)
+        document_chain = create_stuff_documents_chain(llm, retrieval_qa_chat_prompt) # LCELのラッパー
         
-        qa_chain = create_retrieval_chain(retriever_chain, document_chain)
-        # qa_chain_with_chat_history = RunnableWithMessageHistory(
-        #     qa_chain,
-        #     lambda session_id: momento_chat_history, # 特定のsession_idからメッセージを抽出可能とする(複数ユーザーの対応)
-        #     input_messages_key="input",
-        #     history_messages_key="chat_history"
-        # )
+        """
+        question_answer_chain
+        """
+        qa_chain = create_retrieval_chain(retriever_chain, document_chain) # LCELのラッパー
 
-        # Execution
-        # response = qa_chain_with_chat_history.invoke(
-        #     {"input": message},
-        #     {"configurable": {"session_id": "unused"}}
-        # )
-        logger.debug(momento_chat_history.messages)
-
-        response = qa_chain.invoke({
+        response = qa_chain.stream({
             "chat_history": momento_chat_history.messages,
-            "input": message
+            "input": message,
         })
-        momento_chat_history.add_ai_message(response["answer"])
-        
-        logger.debug(response)
-        return response["answer"]
+        answer = ""
+        for msg in response:
+            if answer_msg := msg.get("answer"):
+                answer += answer_msg
+                yield answer_msg
+
+        momento_chat_history.add_ai_message(answer)        
+        self._logger.debug(answer)

@@ -5,36 +5,40 @@ from dotenv import load_dotenv
 from utils import my_logger
 from chat_assistant import ChatAssistant
 
-load_dotenv()
-logger = my_logger.set_logger(__name__)
 
 
+def main():
+    st.title("langchain-streamlit-app")
+    selected_model = st.selectbox("Select Model", settings.MODEL_OPTIONS_UI)
+    on_rag = st.toggle("RAG")
 
-assistant = ChatAssistant()
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-st.title("langchain-streamlit-app")
-selected_model = st.selectbox("Select Model", settings.MODEL_OPTIONS_UI)
+    for message in st.session_state["messages"]:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    prompt = st.chat_input("What's up?")
 
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    if prompt:
+        logger.info('received model from UI: %s', selected_model) # TMP:
+        st.session_state.messages.append({"role": settings.ROLE_USER, "content": prompt})
 
-prompt = st.chat_input("What's up?")
+        with st.chat_message(settings.ROLE_USER):
+            st.markdown(prompt)
 
-if prompt:
-    logger.info('received model from UI: %s', selected_model) # TMP:
-    st.session_state.messages.append({"role": settings.ROLE_USER, "content": prompt})
+        with st.chat_message(settings.ROLE_ASSISTANT):
+            # ストリームで応答
+            assistant = ChatAssistant()
+            response_generator = assistant.retrieval_qa(selected_model, prompt) if on_rag else assistant.respond(selected_model, prompt)
+            response = st.write_stream(response_generator)
 
-    with st.chat_message(settings.ROLE_USER):
-        st.markdown(prompt)
+        st.session_state.messages.append({"role": settings.ROLE_ASSISTANT, "content": response})
+        logger.debug(st.session_state)
 
-    with st.chat_message(settings.ROLE_ASSISTANT):
-        # ストリームで応答
-        response = st.write_stream(assistant.respond(selected_model, prompt))
+if __name__ == "__main__":
+    load_dotenv()
+    logger = my_logger.set_logger(__name__)
 
-    st.session_state.messages.append({"role": settings.ROLE_ASSISTANT, "content": response})
-    print(st.session_state)
-
+    main()

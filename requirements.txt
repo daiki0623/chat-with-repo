@@ -6,3 +6,4 @@ langchain_pinecone>=0.1.0
 ibm-generative-ai==2.3.0
 ibm-generative-ai[langchain]
 momento==1.9.2
+langsmith==0.1.59
