@@ -16,6 +16,7 @@ logger = my_logger.set_logger(__name__)
 
 
 def embeddings_factory():
+    # TODO: エンベディングのモデルは普通切り替える？
     if os.environ["EMBEDDING_MODEL_FLAG"] == "IBM":
         return LangChainEmbeddingsInterface(
             client=Client(credentials=Credentials.from_env()),

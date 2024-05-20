@@ -1,3 +1,4 @@
+from typing import Iterator
 import streamlit as st
 import settings
 
@@ -13,7 +14,7 @@ def main():
     on_rag = st.toggle("RAG")
 
     if "messages" not in st.session_state:
-        st.session_state.messages = []
+        st.session_state["messages"] = []
 
     for message in st.session_state["messages"]:
         with st.chat_message(message["role"]):
@@ -22,20 +23,17 @@ def main():
     prompt = st.chat_input("What's up?")
 
     if prompt:
-        logger.info('received model from UI: %s', selected_model) # TMP:
         st.session_state.messages.append({"role": settings.ROLE_USER, "content": prompt})
 
         with st.chat_message(settings.ROLE_USER):
             st.markdown(prompt)
 
         with st.chat_message(settings.ROLE_ASSISTANT):
-            # ストリームで応答
             assistant = ChatAssistant()
-            response_generator = assistant.retrieval_qa(selected_model, prompt) if on_rag else assistant.respond(selected_model, prompt)
+            response_generator: Iterator = assistant.respond(selected_model, prompt, on_rag)
             response = st.write_stream(response_generator)
 
         st.session_state.messages.append({"role": settings.ROLE_ASSISTANT, "content": response})
-        logger.debug(st.session_state)
 
 if __name__ == "__main__":
     load_dotenv()
