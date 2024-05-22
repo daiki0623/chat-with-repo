@@ -13,6 +13,7 @@ from langchain.chains.history_aware_retriever import create_history_aware_retrie
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.runnables import RunnablePassthrough
 from langchain_core.messages.ai import AIMessageChunk
 from langchain_community.chat_message_histories.momento import MomentoChatMessageHistory
 from langchain_openai.chat_models import ChatOpenAI
@@ -77,10 +78,8 @@ class ChatAssistant:
 
     def __create_chain(self, llm: BaseChatModel, is_rag: bool):
         if is_rag:
-            """VectorDBの初期化"""
-            vectorstore = initialize_vectorstore()
-
             """history_aware_retriever:最新の入力をチャット履歴に格納し、クエリを生成する"""
+            vectorstore = initialize_vectorstore()
             retriever = vectorstore.as_retriever()
             query_messages = [
                 MessagesPlaceholder(variable_name="chat_history"),
