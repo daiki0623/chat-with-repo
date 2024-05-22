@@ -5,9 +5,6 @@ from utils import my_logger
 from dotenv import load_dotenv
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders.pdf import UnstructuredPDFLoader
-from genai import Client, Credentials
-from genai.schema import TextEmbeddingParameters
-from genai.extensions.langchain import LangChainEmbeddingsInterface
 from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 
@@ -16,15 +13,7 @@ logger = my_logger.set_logger(__name__)
 
 
 def embeddings_factory():
-    # TODO: エンベディングのモデルは普通切り替える？
-    if os.environ["EMBEDDING_MODEL_FLAG"] == "IBM":
-        return LangChainEmbeddingsInterface(
-            client=Client(credentials=Credentials.from_env()),
-            model_id=os.environ["GENAI_EMBEDDING_MODEL"],
-            parameters=TextEmbeddingParameters(truncate_input_tokens=True),
-        )
-    else:
-        return OpenAIEmbeddings()
+    return OpenAIEmbeddings()
 
 
 def initialize_vectorstore():
