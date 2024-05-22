@@ -1,5 +1,6 @@
 from typing import Iterator
 import streamlit as st
+from add_document import add_documents
 import settings
 
 from dotenv import load_dotenv
@@ -10,6 +11,13 @@ from chat_assistant import ChatAssistant
 
 def main():
     st.title("langchain-streamlit-app")
+
+    with st.sidebar:
+        repo_url = st.text_input(label="Enter repository URL", value="https://github.com/langchain-ai/langchain")
+        if st.button("Scan", type="primary"):
+            add_documents(repo_url)
+
+            
     selected_model = st.selectbox("Select Model", settings.MODEL_OPTIONS_UI)
     on_rag = st.toggle("RAG")
 
