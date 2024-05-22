@@ -1,0 +1,1 @@
+![](https://python.langchain.com/v0.1/assets/images/conversational_retrieval_chain-5c7a96abe29e582bc575a0a0d63f86b0.png)
