@@ -17,8 +17,8 @@ def main():
         if st.button("Scan", type="primary"):
             add_documents(repo_url)
 
-            
-    selected_model = st.selectbox("Select Model", settings.MODEL_OPTIONS_UI)
+    models = tuple(d["model"] for d in settings.MODEL_OPTIONS)
+    selected_model = st.selectbox("Select Model", models)
     on_rag = st.toggle("RAG")
 
     if "messages" not in st.session_state:
