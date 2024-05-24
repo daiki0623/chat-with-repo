@@ -18,7 +18,7 @@ class ChatAssistant:
 
         chain_with_message_history = RunnableWithMessageHistory(
             chain,
-            ChatHistory.get_message_history,
+            ChatHistory().get_message_history,
             input_messages_key="input",
             history_messages_key="chat_history"
         )
