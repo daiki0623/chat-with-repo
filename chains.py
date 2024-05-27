@@ -7,6 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, Huma
 
 from add_document import create_retriever
 from prompt import QUERY_SYS_PROMPT, RETRIEVAL_SYS_PROMPT
+from settings import ChatHistorySettings
 
 class Chain(ABC):
     @abstractmethod
@@ -16,7 +17,7 @@ class Chain(ABC):
 class SimpleChain(Chain):
     def build(self, llm: BaseChatModel):
         messages = [
-            MessagesPlaceholder(variable_name="chat_history"),
+            MessagesPlaceholder(variable_name=ChatHistorySettings.label),
             HumanMessagePromptTemplate.from_template(template="{input}")
         ]
         prompt = ChatPromptTemplate.from_messages(messages)
@@ -29,7 +30,7 @@ class RagChain(Chain):
         # retriever = create_pdf_retriever()
         retriever = create_retriever()
         query_messages = [
-            MessagesPlaceholder(variable_name="chat_history"),
+            MessagesPlaceholder(variable_name=ChatHistorySettings.label),
             HumanMessagePromptTemplate.from_template(template="{input}"),
             HumanMessagePromptTemplate.from_template(template=QUERY_SYS_PROMPT),
         ]
@@ -39,7 +40,7 @@ class RagChain(Chain):
         """documents_chain"""
         retrieval_qa_messages = [
             SystemMessagePromptTemplate.from_template(template=RETRIEVAL_SYS_PROMPT),
-            MessagesPlaceholder(variable_name="chat_history"),
+            MessagesPlaceholder(variable_name=ChatHistorySettings.label),
             HumanMessagePromptTemplate.from_template(template="{input}")
         ]
         retrieval_qa_chat_prompt = ChatPromptTemplate.from_messages(retrieval_qa_messages)

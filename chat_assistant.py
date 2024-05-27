@@ -1,3 +1,4 @@
+from settings import ChatHistorySettings
 from cache.chat_history import ChatHistory
 from chains import RagChain, SimpleChain
 from llm import Llm
@@ -20,7 +21,7 @@ class ChatAssistant:
             chain,
             ChatHistory().get_message_history,
             input_messages_key="input",
-            history_messages_key="chat_history"
+            history_messages_key=ChatHistorySettings.label
         )
         
         response = chain_with_message_history.stream(
