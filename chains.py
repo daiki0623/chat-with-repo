@@ -6,6 +6,7 @@ from langchain.chains.history_aware_retriever import create_history_aware_retrie
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 
 from add_document import create_retriever
+from prompt import QUERY_SYS_PROMPT, RETRIEVAL_SYS_PROMPT
 
 class Chain(ABC):
     @abstractmethod
@@ -30,14 +31,14 @@ class RagChain(Chain):
         query_messages = [
             MessagesPlaceholder(variable_name="chat_history"),
             HumanMessagePromptTemplate.from_template(template="{input}"),
-            HumanMessagePromptTemplate.from_template(template="Given the above conversation, generate a search query to look up to get information relevant to the conversation"),
+            HumanMessagePromptTemplate.from_template(template=QUERY_SYS_PROMPT),
         ]
         prompt = ChatPromptTemplate.from_messages(query_messages)
         retriever_chain = create_history_aware_retriever(llm, retriever, prompt) # LCELのラッパー
 
         """documents_chain"""
         retrieval_qa_messages = [
-            SystemMessagePromptTemplate.from_template(template="Answer the user's questions based on the below context:\n\n{context}"),
+            SystemMessagePromptTemplate.from_template(template=RETRIEVAL_SYS_PROMPT),
             MessagesPlaceholder(variable_name="chat_history"),
             HumanMessagePromptTemplate.from_template(template="{input}")
         ]

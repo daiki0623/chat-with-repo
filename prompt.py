@@ -1,0 +1,2 @@
+QUERY_SYS_PROMPT = "Given the above conversation, generate a search query to look up to get information relevant to the conversation"
+RETRIEVAL_SYS_PROMPT = "Answer the user's questions based on the below context:\n\n{context}"
