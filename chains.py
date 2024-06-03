@@ -26,7 +26,12 @@ class SimpleChain(Chain):
 
 class RagChain(Chain):
     def build(self, llm: BaseChatModel):
-        """history_aware_retriever:最新の入力をチャット履歴に格納し、クエリを生成する"""
+        retriever_chain = self._build_retriever_chain(llm)
+        document_chain = self._build_document_chain(llm)
+        qa_chain = create_retrieval_chain(retriever_chain, document_chain)
+        return qa_chain
+    
+    def _build_retriever_chain(self, llm: BaseChatModel):
         # retriever = create_pdf_retriever()
         retriever = create_retriever()
         query_messages = [
@@ -36,8 +41,9 @@ class RagChain(Chain):
         ]
         prompt = ChatPromptTemplate.from_messages(query_messages)
         retriever_chain = create_history_aware_retriever(llm, retriever, prompt) # LCELのラッパー
+        return retriever_chain
 
-        """documents_chain"""
+    def _build_document_chain(self, llm: BaseChatModel):
         retrieval_qa_messages = [
             SystemMessagePromptTemplate.from_template(template=RETRIEVAL_SYS_PROMPT),
             MessagesPlaceholder(variable_name=ChatHistorySettings.label),
@@ -45,7 +51,4 @@ class RagChain(Chain):
         ]
         retrieval_qa_chat_prompt = ChatPromptTemplate.from_messages(retrieval_qa_messages)
         document_chain = create_stuff_documents_chain(llm, retrieval_qa_chat_prompt) # LCELのラッパー
-        
-        """question_answer_chain"""
-        qa_chain = create_retrieval_chain(retriever_chain, document_chain) # LCELのラッパー
-        return qa_chain
+        return document_chain
